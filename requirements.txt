@@ -1,0 +1,6 @@
+pydub
+playwright
+oss2
+qrcode[pil]
+python-dotenv
+requests
