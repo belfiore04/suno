@@ -6,3 +6,4 @@ __pycache__/
 suno_upload_error.png
 suno_timeout_error.png
 test_single.py
+venv/

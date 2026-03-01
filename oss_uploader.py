@@ -4,15 +4,15 @@ import os
 from pathlib import Path
 
 import oss2
-
+from typing import Optional
 
 def upload_to_oss(
     file_path: str,
-    object_key: str | None = None,
-    access_key_id: str | None = None,
-    access_key_secret: str | None = None,
-    bucket_name: str | None = None,
-    endpoint: str | None = None,
+    object_key: Optional[str] = None,
+    access_key_id: Optional[str] = None,
+    access_key_secret: Optional[str] = None,
+    bucket_name: Optional[str] = None,
+    endpoint: Optional[str] = None,
 ) -> str:
     """
     上传文件到阿里云 OSS 并返回公开下载链接。
