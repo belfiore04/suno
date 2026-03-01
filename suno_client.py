@@ -32,7 +32,11 @@ def upload_audio(local_path: str) -> str:
         headers=_headers(),
         json={"extension": "mp3"},
     )
-    resp.raise_for_status()
+    try:
+        resp.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        print(f"Upload failed with 401: {resp.text}")
+        raise e
     info = resp.json()
     upload_id = info["id"]
     s3_url = info["url"]
@@ -62,8 +66,9 @@ def upload_audio(local_path: str) -> str:
     finish_resp.raise_for_status()
     print(f"[Upload] finish 响应: {finish_resp.text[:200]}")
 
-    # 4. 轮询等待处理完成，拿到 clip_id
+    # 4. 轮询等待处理完成
     print("[Upload] 等待音频处理...")
+    upload_clip_id = None
     for i in range(40):
         time.sleep(3)
         status_resp = requests.get(
@@ -72,12 +77,24 @@ def upload_audio(local_path: str) -> str:
         )
         status_resp.raise_for_status()
         data = status_resp.json()
-        print(f"[Upload] 第{i+1}次轮询: {data}")
-        clip_id = data.get("clip_id") or data.get("s3_id")
-        if clip_id and data.get("status") == "complete":
-            print(f"[Upload] 处理完成，clip_id: {clip_id}")
-            return clip_id
-    raise TimeoutError("音频上传处理超时（>120s）")
+        print(f"[Upload] 第{i+1}次轮询: {data.get('status')}")
+        if data.get("status") == "complete":
+            print(f"[Upload] 处理完成")
+            break
+    else:
+        raise TimeoutError("音频上传处理超时（>120s）")
+
+    # 5. Initialize Clip (关键步骤：拿到生成可用的真正 clip_id)
+    print(f"[Upload] 初始化 Clip (upload_id: {upload_id})...")
+    init_resp = requests.post(
+        f"{base}/suno/uploads/audio/{upload_id}/initialize-clip",
+        headers=_headers(),
+        json={},
+    )
+    init_resp.raise_for_status()
+    clip_id = init_resp.json().get("clip_id")
+    print(f"[Upload] 初始化成功，用于生成的 clip_id: {clip_id}")
+    return clip_id
 
 
 def generate_cover(
@@ -91,16 +108,11 @@ def generate_cover(
     print(f"[Generate] 提交 Cover 任务，cover_clip_id={cover_clip_id}")
     body = {
         "prompt": prompt,
-        "generation_type": "TEXT",
-        "tags": style,
-        "negative_tags": "",
         "mv": mv,
         "title": title,
-        "continue_clip_id": None,
-        "continue_at": None,
-        "continued_aligned_prompt": None,
-        "infill_start_s": None,
-        "infill_end_s": None,
+        "tags": style,
+        "continue_at": 120,
+        "continue_clip_id": "",
         "task": "cover",
         "cover_clip_id": cover_clip_id,
     }
@@ -109,8 +121,10 @@ def generate_cover(
         headers=_headers(),
         json=body,
     )
-    resp.raise_for_status()
-    data = resp.json()
+    try:
+        data = resp.json()
+    except Exception as e:
+        raise RuntimeError(f"解析 JSON 失败. 状态码: {resp.status_code}, 响应内容: {resp.text}")
     clips = data.get("clips", [])
     if not clips:
         raise RuntimeError(f"生成任务提交失败，响应: {data}")
