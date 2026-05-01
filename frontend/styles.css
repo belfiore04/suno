@@ -67,6 +67,8 @@ input {
   height: 100%;
   z-index: 3;
   pointer-events: auto;
+  opacity: 1;
+  transition: opacity 900ms ease;
 }
 
 .intro-actions {
@@ -81,6 +83,11 @@ input {
 
 .intro-screen:not(.has-video) .intro-hotspot-layer {
   display: none;
+}
+
+body.is-generating .intro-hotspot-layer {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .intro-empty {
@@ -139,6 +146,59 @@ input {
   display: inline-block;
   margin-top: 12px;
   color: var(--accent-2);
+}
+
+.qr-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.42);
+}
+
+.qr-modal[hidden] {
+  display: none;
+}
+
+.qr-dialog {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  width: min(390px, 100%);
+  padding: 22px;
+  border: 1px solid var(--line);
+  background: rgba(13, 15, 18, 0.92);
+  backdrop-filter: blur(14px);
+}
+
+.qr-dialog h2 {
+  font-size: 22px;
+}
+
+.qr-dialog img {
+  width: min(260px, 72vw);
+  height: auto;
+  background: white;
+  padding: 10px;
+}
+
+.qr-dialog a {
+  color: var(--accent-2);
+}
+
+.qr-close {
+  position: absolute;
+  right: 10px;
+  top: 8px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  color: var(--text);
+  background: rgba(32, 35, 40, 0.88);
+  cursor: pointer;
 }
 
 .intro-actions button,

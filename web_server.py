@@ -1,13 +1,17 @@
 """Local web server for the video hotspot Suno workflow."""
 
+import base64
+from io import BytesIO
+import os
 from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+import qrcode
 
 from mixer import mix_audios
 from oss_uploader import upload_to_oss
@@ -33,8 +37,32 @@ class SelectedItem(BaseModel):
 
 class GenerateRequest(BaseModel):
     items: list[SelectedItem] = Field(min_length=4, max_length=4)
-    style: str = "pop, cinematic, Mandarin vocal"
+    style: str = "a cappella, vocal only, four-part harmony"
     skip_oss: bool = True
+
+
+AUDIO_WORDS = {
+    11: "浮叶",
+    12: "晨钟",
+    13: "断句",
+    14: "倒刺",
+    15: "碎镜",
+    21: "暗涌",
+    22: "苔原",
+    23: "软重",
+    24: "沉晖",
+    25: "未烬",
+    31: "侧临",
+    32: "无滞",
+    33: "静观",
+    34: "返听",
+    35: "不沾",
+    41: "重频",
+    42: "余振",
+    43: "伏根",
+    44: "地脉",
+    45: "底鸣",
+}
 
 
 def _safe_audio_path(file_name: str) -> Path:
@@ -46,37 +74,82 @@ def _safe_audio_path(file_name: str) -> Path:
     return path
 
 
-def build_song_metadata(items: list[SelectedItem], style: str) -> tuple[str, str, str]:
-    names = [item.name.strip() for item in items]
-    title = f"{names[0]}与{names[-1]}之间"
+def _absolute_url(request: Request, relative_url: str) -> str:
+    public_base_url = os.getenv("PUBLIC_BASE_URL", "").rstrip("/")
+    if public_base_url:
+        return f"{public_base_url}{relative_url}"
+    return str(request.base_url).rstrip("/") + relative_url
+
+
+def _qr_data_url(url: str) -> str:
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+    return f"data:image/png;base64,{encoded}"
+
+
+def build_song_metadata(items: list[SelectedItem], style: str) -> tuple[str, str, str, str]:
+    names = [AUDIO_WORDS.get(item.id, item.name.strip()) for item in items]
+    title = f"{names[0]}·{names[1]}·{names[2]}·{names[3]}"
     theme = "、".join(names)
     lyrics = "\n".join([
-        f"[Verse 1]",
-        f"{names[0]}在第一束光里醒来",
-        f"{names[1]}把回声推向人海",
-        f"我听见{names[2]}穿过墙外",
-        f"也看见{names[3]}慢慢靠近舞台",
+        "[Verse 1]",
+        f"{names[0]}缓缓落在呼吸之间",
+        f"{names[1]}从远处回到心田",
+        f"{names[2]}安住在无声的边缘",
+        f"{names[3]}向深处铺开一线",
         "",
-        "[Pre-Chorus]",
-        f"把{theme}都写进节拍",
-        "让每一次选择都变成现在",
+        "[Verse 2]",
+        "男低声像地面轻轻托住夜晚",
+        "女低声在胸口慢慢回环",
+        "男高声穿过云层不急不缓",
+        "女高声把光放回眉间",
         "",
         "[Chorus]",
-        f"{names[0]}，{names[1]}，一起落下来",
-        f"{names[2]}，{names[3]}，把夜晚点燃",
-        "如果声音会替我们记载",
-        "这一刻就不用再重来",
+        f"{names[0]}，{names[1]}，{names[2]}，{names[3]}",
+        "在同一口气里展开",
+        "没有鼓点，没有弦外",
+        "只有人声像水一样慢慢来",
         "",
         "[Bridge]",
-        f"四段旋律排成一片海",
-        "我沿着按钮找到答案",
+        f"让{theme}成为一圈安静的波纹",
+        "四个声部相遇，又各自归根",
         "",
         "[Final Chorus]",
-        f"{theme}",
-        "在同一首歌里盛开",
+        f"{names[0]}，{names[1]}，{names[2]}，{names[3]}",
+        "在闭眼时仍然存在",
+        "悠长，清澈，缓慢，空白",
+        "像一场只由呼吸组成的海",
     ])
-    prompt = f"中文流行歌词，主题来自这些声音名字：{theme}。\n\n{lyrics}"
-    return title, lyrics, f"{style}, Chinese lyrics, emotional chorus"
+    prompt = "\n".join([
+        "Create an a cappella song with vocals only and absolutely no instruments.",
+        "Use four vocal parts: tenor, bass, soprano, and alto.",
+        "The mood must be meditative, spacious, serene, and melodious.",
+        "Use slow, flowing, sustained harmonies with a contemplative feeling.",
+        f"The Chinese lyrics must include these four words exactly: {theme}.",
+        "",
+        lyrics,
+    ])
+    tags = ", ".join([
+        style,
+        "a cappella",
+        "vocal only",
+        "no instruments",
+        "four-part harmony",
+        "tenor",
+        "bass",
+        "soprano",
+        "alto",
+        "meditative",
+        "serene",
+        "melodious",
+        "Chinese lyrics",
+    ])
+    return title, lyrics, prompt, tags
 
 
 @app.get("/")
@@ -85,12 +158,12 @@ def index() -> FileResponse:
 
 
 @app.post("/api/generate")
-def generate_song(request: GenerateRequest) -> dict:
+def generate_song(payload: GenerateRequest, request: Request) -> dict:
     load_dotenv()
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    audio_paths = [_safe_audio_path(item.file) for item in request.items]
-    title, lyrics, style = build_song_metadata(request.items, request.style)
+    audio_paths = [_safe_audio_path(item.file) for item in payload.items]
+    title, lyrics, prompt, style = build_song_metadata(payload.items, payload.style)
 
     mixed_path = OUTPUT_DIR / "mixed.mp3"
     mix_audios([str(path) for path in audio_paths], str(mixed_path))
@@ -98,7 +171,7 @@ def generate_song(request: GenerateRequest) -> dict:
     cover_clip_id = upload_audio(str(mixed_path))
     task = generate_cover(
         cover_clip_id=cover_clip_id,
-        prompt=lyrics,
+        prompt=prompt,
         style=style,
         title=title,
     )
@@ -110,10 +183,14 @@ def generate_song(request: GenerateRequest) -> dict:
 
     download_url: Optional[str] = None
     qr_path: Optional[str] = None
-    if not request.skip_oss:
+    if not payload.skip_oss:
         download_url = upload_to_oss(str(local_song_path), object_key=f"suno_music/output/{song_filename}")
         qr_path = str(OUTPUT_DIR / "download_qr.png")
         generate_qr(download_url, qr_path)
+
+    song_url = f"/output/{song_filename}"
+    qr_target_url = download_url or _absolute_url(request, song_url)
+    qr_data_url = _qr_data_url(qr_target_url)
 
     return {
         "title": title,
@@ -121,7 +198,9 @@ def generate_song(request: GenerateRequest) -> dict:
         "style": style,
         "mixed_path": str(mixed_path),
         "song_path": str(local_song_path),
-        "song_url": f"/output/{song_filename}",
+        "song_url": song_url,
+        "qr_url": qr_target_url,
+        "qr_data_url": qr_data_url,
         "download_url": download_url,
         "qr_path": qr_path,
     }

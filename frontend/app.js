@@ -5,6 +5,29 @@ const HOTSPOT_IDS = [
   41, 42, 43, 44, 45,
 ];
 
+const HOTSPOT_WORDS = {
+  11: "浮叶",
+  12: "晨钟",
+  13: "断句",
+  14: "倒刺",
+  15: "碎镜",
+  21: "暗涌",
+  22: "苔原",
+  23: "软重",
+  24: "沉晖",
+  25: "未烬",
+  31: "侧临",
+  32: "无滞",
+  33: "静观",
+  34: "返听",
+  35: "不沾",
+  41: "重频",
+  42: "余振",
+  43: "伏根",
+  44: "地脉",
+  45: "底鸣",
+};
+
 const state = {
   mode: "edit",
   activeId: 11,
@@ -29,6 +52,12 @@ const els = {
   generatedTitle: document.querySelector("#generatedTitle"),
   generatedLyrics: document.querySelector("#generatedLyrics"),
   generatedSongLink: document.querySelector("#generatedSongLink"),
+  qrModal: document.querySelector("#qrModal"),
+  qrCloseButton: document.querySelector("#qrCloseButton"),
+  qrTitle: document.querySelector("#qrTitle"),
+  qrImage: document.querySelector("#qrImage"),
+  qrDownloadLink: document.querySelector("#qrDownloadLink"),
+  generatedAudio: document.querySelector("#generatedAudio"),
   video: document.querySelector("#video"),
   videoInput: document.querySelector("#videoInput"),
   playButton: document.querySelector("#playButton"),
@@ -61,7 +90,7 @@ function defaultHotspot(id, index) {
 
   return {
     id,
-    name: `音频 ${id}`,
+    name: HOTSPOT_WORDS[id] ?? `音频 ${id}`,
     file: `music/${option}.${group}_1.mp3`,
     x: 140 + col * 180,
     y: 70 + row * rowGap,
@@ -95,6 +124,19 @@ function hasCompleteHotspotSet(value) {
   return HOTSPOT_IDS.every((id) => ids.has(id));
 }
 
+function normalizeHotspots(value) {
+  const byId = new Map(value.map((item) => [Number(item.id), item]));
+  return HOTSPOT_IDS.map((id, index) => {
+    const current = byId.get(id);
+    return {
+      ...defaultHotspot(id, index),
+      ...current,
+      id,
+      name: HOTSPOT_WORDS[id] ?? current?.name ?? `音频 ${id}`,
+    };
+  });
+}
+
 function saveHotspots() {
   localStorage.setItem("suno-hotspots", JSON.stringify(state.hotspots));
 }
@@ -113,8 +155,9 @@ function loadHotspots() {
       return;
     }
 
-    state.hotspots = parsed;
+    state.hotspots = normalizeHotspots(parsed);
     state.activeId = state.hotspots[0]?.id ?? 11;
+    saveHotspots();
   } catch {
     createDefaultHotspots();
   }
@@ -319,6 +362,7 @@ function syncVideoPlayback() {
   if (state.selectedIds.length === 4) {
     els.playButton.disabled = false;
     els.playButton.textContent = "播放/暂停";
+    document.body.classList.add("is-generating");
     const video = document.body.classList.contains("editor-active") ? els.video : els.introVideo;
     video.play().catch(() => {
       if (document.body.classList.contains("editor-active")) {
@@ -331,6 +375,7 @@ function syncVideoPlayback() {
 
   state.generationKey = "";
   state.generating = false;
+  document.body.classList.remove("is-generating");
   els.video.pause();
   els.introVideo.pause();
   els.playButton.disabled = true;
@@ -351,6 +396,7 @@ async function startGenerationIfNeeded() {
 
   state.generating = true;
   state.generationKey = key;
+  document.body.classList.add("is-generating");
   els.generationPanel.hidden = false;
   els.generationStatus.textContent = "正在生成歌名和歌词...";
   els.generatedTitle.textContent = "生成中";
@@ -363,8 +409,8 @@ async function startGenerationIfNeeded() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         items: outputPayload(),
-        style: "pop, cinematic, Mandarin vocal",
-        skip_oss: true,
+        style: "a cappella, vocal only, four-part harmony, meditative",
+        skip_oss: false,
       }),
     });
 
@@ -380,13 +426,57 @@ async function startGenerationIfNeeded() {
       els.generatedSongLink.href = data.song_url;
       els.generatedSongLink.hidden = false;
     }
+    stopVideoAtFirstFrame();
+    playGeneratedAudio(data.song_url);
+    showQrModal(data);
   } catch (error) {
+    document.body.classList.remove("is-generating");
+    stopVideoAtFirstFrame();
     els.generationStatus.textContent = "生成失败";
     els.generatedTitle.textContent = "后端未完成或请求失败";
     els.generatedLyrics.textContent = String(error.message || error);
   } finally {
     state.generating = false;
   }
+}
+
+function stopVideoAtFirstFrame() {
+  els.video.pause();
+  els.introVideo.pause();
+  if (Number.isFinite(els.video.duration)) {
+    els.video.currentTime = 0;
+  }
+  if (Number.isFinite(els.introVideo.duration)) {
+    els.introVideo.currentTime = 0;
+  }
+}
+
+function playGeneratedAudio(songUrl) {
+  if (!songUrl) return;
+  els.generatedAudio.src = songUrl;
+  els.generatedAudio.currentTime = 0;
+  els.generatedAudio.play().catch(() => {});
+}
+
+function showQrModal(data) {
+  els.qrTitle.textContent = data.title || "扫描下载音频";
+  els.qrImage.src = data.qr_data_url;
+  els.qrDownloadLink.href = data.qr_url || data.song_url;
+  els.qrModal.hidden = false;
+}
+
+function closeQrModal() {
+  els.qrModal.hidden = true;
+  els.generatedAudio.pause();
+  els.generatedAudio.removeAttribute("src");
+  els.generatedAudio.load();
+  els.generationPanel.hidden = true;
+  state.selectedIds = [];
+  state.generationKey = "";
+  state.generating = false;
+  document.body.classList.remove("is-generating");
+  stopVideoAtFirstFrame();
+  render();
 }
 
 function syncVideoFrame() {
@@ -504,6 +594,14 @@ els.playButton.addEventListener("click", async () => {
     await els.video.play();
   } else {
     els.video.pause();
+  }
+});
+
+els.qrCloseButton.addEventListener("click", closeQrModal);
+
+els.qrModal.addEventListener("click", (event) => {
+  if (event.target === els.qrModal) {
+    closeQrModal();
   }
 });
 

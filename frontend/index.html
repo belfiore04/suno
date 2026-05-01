@@ -28,6 +28,16 @@
           <pre id="generatedLyrics"></pre>
           <a id="generatedSongLink" href="#" target="_blank" rel="noreferrer" hidden>打开生成歌曲</a>
         </div>
+        <div class="qr-modal" id="qrModal" hidden>
+          <div class="qr-dialog">
+            <button class="qr-close" id="qrCloseButton" type="button" aria-label="关闭">×</button>
+            <p class="kicker">生成完成</p>
+            <h2 id="qrTitle">扫描下载音频</h2>
+            <img id="qrImage" alt="下载二维码" />
+            <a id="qrDownloadLink" href="#" target="_blank" rel="noreferrer">打开下载链接</a>
+          </div>
+        </div>
+        <audio id="generatedAudio"></audio>
       </div>
     </section>
 
