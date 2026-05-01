@@ -29,11 +29,15 @@
         <div class="qr-modal" id="qrModal" hidden>
           <div class="qr-dialog">
             <button class="qr-close" id="qrCloseButton" type="button" aria-label="关闭">×</button>
-            <p class="kicker">生成完成</p>
             <h2 id="qrTitle">扫描下载音频</h2>
-            <img id="qrImage" alt="下载二维码" />
-            <a id="qrDownloadLink" href="#" target="_blank" rel="noreferrer">打开下载链接</a>
-            <a id="referenceAudioLink" class="reference-audio-link" href="#" target="_blank" rel="noreferrer">试听参考音频</a>
+            <div class="qr-image-frame">
+              <img id="qrImage" alt="下载二维码" />
+            </div>
+            <p class="qr-hint">扫描下载音频</p>
+            <div class="qr-actions">
+              <a id="qrDownloadLink" href="#" target="_blank" rel="noreferrer">打开链接</a>
+              <a id="referenceAudioLink" class="reference-audio-link" href="#" target="_blank" rel="noreferrer">试听参考</a>
+            </div>
           </div>
         </div>
         <audio id="generatedAudio"></audio>
