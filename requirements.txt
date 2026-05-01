@@ -1,5 +1,6 @@
 fastapi
 pydub
+pyaudioop
 pyserial
 uvicorn
 playwright
