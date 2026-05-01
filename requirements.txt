@@ -1,4 +1,5 @@
 pydub
+pyserial
 playwright
 oss2
 qrcode[pil]
