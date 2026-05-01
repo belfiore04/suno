@@ -9,13 +9,13 @@ RELAY_ID_RE = re.compile(r"\b([1-4][1-5])\b")
 
 
 def relay_id_to_music_path(relay_id: int, music_dir: str = "music") -> str:
-    """Map Arduino relay id XY to music/Y.X_1.mp3."""
+    """Map Arduino relay id XY to music/Y.X.mp3."""
     group = relay_id // 10
     option = relay_id % 10
     if group < 1 or group > 4 or option < 1 or option > 5:
         raise ValueError(f"Arduino 编号不在有效范围 11~45: {relay_id}")
 
-    path = Path(music_dir) / f"{option}.{group}_1.mp3"
+    path = Path(music_dir) / f"{option}.{group}.mp3"
     if not path.exists():
         raise FileNotFoundError(f"Arduino 编号 {relay_id} 对应的音频不存在: {path}")
     return str(path)

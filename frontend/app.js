@@ -89,13 +89,24 @@ function defaultHotspot(id, index) {
   return {
     id,
     name: HOTSPOT_WORDS[id] ?? `音频 ${id}`,
-    file: `music/${option}.${group}_1.mp3`,
+    file: defaultAudioFile(id),
     x: 140 + col * 180,
     y: 70 + row * rowGap,
     rx: 58,
     ry: 34,
     rotation: 0,
   };
+}
+
+function defaultAudioFile(id) {
+  const group = Math.floor(id / 10);
+  const option = id % 10;
+  return `music/${option}.${group}.mp3`;
+}
+
+function normalizeAudioFile(file, id) {
+  const oldDefault = defaultAudioFile(id).replace(".mp3", "_1.mp3");
+  return file === oldDefault ? defaultAudioFile(id) : file;
 }
 
 function createDefaultHotspots() {
@@ -131,6 +142,7 @@ function normalizeHotspots(value) {
       ...current,
       id,
       name: HOTSPOT_WORDS[id] ?? current?.name ?? `音频 ${id}`,
+      file: normalizeAudioFile(current?.file ?? defaultAudioFile(id), id),
     };
   });
 }
