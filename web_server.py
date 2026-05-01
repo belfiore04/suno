@@ -129,7 +129,7 @@ def build_song_metadata(items: list[SelectedItem], style: str) -> tuple[str, str
         "悠长，肃穆，震荡，空白",
         "像一座只由人声托起的圣殿",
     ])
-    prompt = lyrics
+    prompt = ""
     tags = ", ".join([
         style,
         "sacred music",

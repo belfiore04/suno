@@ -23,7 +23,7 @@ body {
     linear-gradient(240deg, rgba(41, 211, 183, 0.08), transparent 28%),
     var(--bg);
   color: var(--text);
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-family: "PingFang SC", "PingFang TC", "Helvetica Neue", Arial, sans-serif;
 }
 
 button,
@@ -90,6 +90,11 @@ body.is-generating .intro-hotspot-layer {
   pointer-events: none;
 }
 
+body.is-generating .intro-actions {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .intro-empty {
   position: absolute;
   inset: 0;
@@ -109,43 +114,46 @@ body.is-generating .intro-hotspot-layer {
 
 .generation-panel {
   position: absolute;
-  right: 18px;
-  bottom: 18px;
+  inset: 0;
   z-index: 5;
-  width: min(420px, calc(100vw - 36px));
-  max-height: min(52vh, 520px);
-  overflow: auto;
-  padding: 16px;
-  border: 1px solid var(--line);
-  background: rgba(13, 15, 18, 0.82);
-  backdrop-filter: blur(12px);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
 }
 
-.generation-status {
-  margin-bottom: 10px;
-  color: var(--accent);
-  font-size: 12px;
+.generation-panel[hidden] {
+  display: none;
 }
 
-.generation-panel h2 {
-  margin-bottom: 10px;
-  font-size: 22px;
-}
-
-.generation-panel pre {
-  max-height: 260px;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
+.generating-word {
   color: var(--text);
-  line-height: 1.7;
+  font-size: clamp(32px, 7vw, 92px);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-shadow: 0 10px 40px rgba(0, 0, 0, 0.55);
+  animation: generatingPulse 1.8s ease-in-out infinite;
 }
 
-.generation-panel a {
-  display: inline-block;
-  margin-top: 12px;
-  color: var(--accent-2);
+.generating-error {
+  position: absolute;
+  bottom: 14vh;
+  width: min(620px, calc(100vw - 36px));
+  color: var(--danger);
+  text-align: center;
+  line-height: 1.5;
+}
+
+@keyframes generatingPulse {
+  0%,
+  100% {
+    opacity: 0.48;
+    transform: scale(0.985);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .qr-modal {

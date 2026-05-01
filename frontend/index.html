@@ -16,7 +16,6 @@
             <input id="introVideoInput" type="file" accept="video/*" />
             选择视频
           </label>
-          <button id="fullscreenButton" type="button">进入全屏体验</button>
           <button id="enterEditorButton" type="button">编辑热点</button>
         </div>
         <div class="intro-empty" id="introEmpty">
@@ -24,10 +23,8 @@
           <span>选择视频后会停在第一帧，可直接点击热点选择音频。</span>
         </div>
         <div class="generation-panel" id="generationPanel" hidden>
-          <div class="generation-status" id="generationStatus">等待选择</div>
-          <h2 id="generatedTitle">未生成</h2>
-          <pre id="generatedLyrics"></pre>
-          <a id="generatedSongLink" href="#" target="_blank" rel="noreferrer" hidden>打开生成歌曲</a>
+          <div class="generating-word">Generating</div>
+          <div class="generating-error" id="generatingError"></div>
         </div>
         <div class="qr-modal" id="qrModal" hidden>
           <div class="qr-dialog">

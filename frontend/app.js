@@ -46,13 +46,9 @@ const els = {
   introVideoInput: document.querySelector("#introVideoInput"),
   introLayer: document.querySelector("#introHotspotLayer"),
   introEmpty: document.querySelector("#introEmpty"),
-  fullscreenButton: document.querySelector("#fullscreenButton"),
   enterEditorButton: document.querySelector("#enterEditorButton"),
   generationPanel: document.querySelector("#generationPanel"),
-  generationStatus: document.querySelector("#generationStatus"),
-  generatedTitle: document.querySelector("#generatedTitle"),
-  generatedLyrics: document.querySelector("#generatedLyrics"),
-  generatedSongLink: document.querySelector("#generatedSongLink"),
+  generatingError: document.querySelector("#generatingError"),
   qrModal: document.querySelector("#qrModal"),
   qrCloseButton: document.querySelector("#qrCloseButton"),
   qrTitle: document.querySelector("#qrTitle"),
@@ -364,6 +360,7 @@ function syncVideoPlayback() {
     els.playButton.disabled = false;
     els.playButton.textContent = "播放/暂停";
     document.body.classList.add("is-generating");
+    requestExperienceFullscreen();
     const video = document.body.classList.contains("editor-active") ? els.video : els.introVideo;
     video.play().catch(() => {
       if (document.body.classList.contains("editor-active")) {
@@ -399,10 +396,7 @@ async function startGenerationIfNeeded() {
   state.generationKey = key;
   document.body.classList.add("is-generating");
   els.generationPanel.hidden = false;
-  els.generationStatus.textContent = "正在生成歌名和歌词...";
-  els.generatedTitle.textContent = "生成中";
-  els.generatedLyrics.textContent = outputPayload().map((item) => item.name).join(" / ");
-  els.generatedSongLink.hidden = true;
+  els.generatingError.textContent = "";
 
   try {
     const response = await fetch("/api/generate", {
@@ -420,22 +414,14 @@ async function startGenerationIfNeeded() {
       throw new Error(data.detail || data.error || "生成失败");
     }
 
-    els.generationStatus.textContent = "生成完成";
-    els.generatedTitle.textContent = data.title;
-    els.generatedLyrics.textContent = data.lyrics;
-    if (data.song_url) {
-      els.generatedSongLink.href = data.song_url;
-      els.generatedSongLink.hidden = false;
-    }
     stopVideoAtFirstFrame();
     playGeneratedAudio(data.song_url);
     showQrModal(data);
   } catch (error) {
     document.body.classList.remove("is-generating");
     stopVideoAtFirstFrame();
-    els.generationStatus.textContent = "生成失败";
-    els.generatedTitle.textContent = "后端未完成或请求失败";
-    els.generatedLyrics.textContent = String(error.message || error);
+    els.generationPanel.hidden = false;
+    els.generatingError.textContent = String(error.message || error);
   } finally {
     state.generating = false;
   }
@@ -472,6 +458,7 @@ function closeQrModal() {
   els.generatedAudio.removeAttribute("src");
   els.generatedAudio.load();
   els.generationPanel.hidden = true;
+  els.generatingError.textContent = "";
   state.selectedIds = [];
   state.generationKey = "";
   state.generating = false;
@@ -600,8 +587,6 @@ els.enterEditorButton.addEventListener("click", () => {
   syncVideoFrame();
   render();
 });
-
-els.fullscreenButton.addEventListener("click", requestExperienceFullscreen);
 
 els.playButton.addEventListener("click", async () => {
   if (!els.video.src || state.selectedIds.length < 4) return;
