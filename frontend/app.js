@@ -418,7 +418,7 @@ async function startGenerationIfNeeded() {
       body: JSON.stringify({
         items: outputPayload(),
         style: "meditative a cappella, serene vocal ensemble, vocal only, slow breathing harmonies",
-        skip_oss: true,
+        skip_oss: false,
       }),
     });
 

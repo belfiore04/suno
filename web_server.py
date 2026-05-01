@@ -39,7 +39,7 @@ class SelectedItem(BaseModel):
 class GenerateRequest(BaseModel):
     items: list[SelectedItem] = Field(min_length=4, max_length=4)
     style: str = "meditative a cappella, serene vocal ensemble, vocal only"
-    skip_oss: bool = True
+    skip_oss: bool = False
 
 
 AUDIO_WORDS = {
@@ -198,12 +198,18 @@ def generate_song(payload: GenerateRequest, request: Request) -> dict:
     download_url: Optional[str] = None
     qr_path: Optional[str] = None
     if not payload.skip_oss:
-        download_url = upload_to_oss(str(local_song_path), object_key=f"suno_music/output/{song_filename}")
+        try:
+            download_url = upload_to_oss(str(local_song_path), object_key=f"suno_music/output/{song_filename}")
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"OSS 上传失败，二维码未生成: {exc}") from exc
         qr_path = str(OUTPUT_DIR / "download_qr.png")
         generate_qr(download_url, qr_path)
 
     song_url = f"/output/{song_filename}"
     mixed_url = f"/output/{mixed_path.name}"
+    if not download_url and not payload.skip_oss:
+        raise HTTPException(status_code=500, detail="OSS 上传没有返回下载链接，已停止生成二维码")
+
     qr_target_url = download_url or _absolute_url(request, song_url)
     qr_data_url = _qr_data_url(qr_target_url)
 
