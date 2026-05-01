@@ -1,5 +1,7 @@
+fastapi
 pydub
 pyserial
+uvicorn
 playwright
 oss2
 qrcode[pil]

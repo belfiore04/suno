@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Suno Hotspot Composer</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <section class="intro-screen" id="introScreen">
+      <div class="intro-video-shell" id="introVideoShell">
+        <video id="introVideo" playsinline loop></video>
+        <svg id="introHotspotLayer" class="hotspot-layer intro-hotspot-layer" viewBox="0 0 1000 562.5" preserveAspectRatio="xMidYMid slice"></svg>
+        <div class="intro-actions">
+          <label class="file-button intro-file-button">
+            <input id="introVideoInput" type="file" accept="video/*" />
+            选择视频
+          </label>
+          <button id="enterEditorButton" type="button">编辑热点</button>
+        </div>
+        <div class="intro-empty" id="introEmpty">
+          <strong>载入视频封面</strong>
+          <span>选择视频后会停在第一帧，可直接点击热点选择音频。</span>
+        </div>
+        <div class="generation-panel" id="generationPanel" hidden>
+          <div class="generation-status" id="generationStatus">等待选择</div>
+          <h2 id="generatedTitle">未生成</h2>
+          <pre id="generatedLyrics"></pre>
+          <a id="generatedSongLink" href="#" target="_blank" rel="noreferrer" hidden>打开生成歌曲</a>
+        </div>
+      </div>
+    </section>
+
+    <main class="app-shell">
+      <section class="stage-panel">
+        <div class="topbar">
+          <div>
+            <p class="kicker">Suno Hotspot Composer</p>
+            <h1>视频热点音频选择器</h1>
+          </div>
+          <div class="mode-switch" role="group" aria-label="模式">
+            <button class="mode-button is-active" id="editModeButton" type="button">编辑</button>
+            <button class="mode-button" id="selectModeButton" type="button">选择</button>
+          </div>
+        </div>
+
+        <div class="video-frame" id="videoFrame">
+          <video id="video" playsinline loop></video>
+          <svg id="hotspotLayer" class="hotspot-layer" viewBox="0 0 1000 562.5" preserveAspectRatio="xMidYMid meet"></svg>
+          <div class="empty-state" id="emptyState">
+            <strong>选择一段视频开始布点</strong>
+            <span>热点会按视频比例保存，换屏幕尺寸也能对齐。</span>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <label class="file-button">
+            <input id="videoInput" type="file" accept="video/*" />
+            选择视频
+          </label>
+          <button id="playButton" type="button">播放/暂停</button>
+          <button id="createButton" type="button">生成 20 个热点</button>
+          <button id="clearSelectionButton" type="button">清空选择</button>
+          <button id="exportButton" type="button">导出配置</button>
+          <label class="file-button">
+            <input id="importInput" type="file" accept="application/json,.json" />
+            导入配置
+          </label>
+        </div>
+      </section>
+
+      <aside class="side-panel">
+        <section class="panel-section">
+          <div class="section-head">
+            <h2>已选音频</h2>
+            <span id="selectionCount">0 / 4</span>
+          </div>
+          <ol class="selection-list" id="selectionList"></ol>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-head">
+            <h2>热点列表</h2>
+            <span>20</span>
+          </div>
+          <div class="hotspot-list" id="hotspotList"></div>
+        </section>
+
+        <section class="panel-section">
+          <h2>当前热点</h2>
+          <div class="editor-form">
+            <label>
+              编号
+              <input id="idInput" type="text" readonly />
+            </label>
+            <label>
+              名字
+              <input id="nameInput" type="text" />
+            </label>
+            <label>
+              音频文件
+              <input id="fileInput" type="text" />
+            </label>
+            <div class="range-grid">
+              <label>
+                宽
+                <input id="widthInput" type="range" min="3" max="35" step="0.2" />
+              </label>
+              <label>
+                高
+                <input id="heightInput" type="range" min="3" max="35" step="0.2" />
+              </label>
+              <label>
+                旋转
+                <input id="rotationInput" type="range" min="-180" max="180" step="1" />
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel-section output-section">
+          <h2>程序输出</h2>
+          <pre id="outputBox">[]</pre>
+        </section>
+      </aside>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

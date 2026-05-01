@@ -1,0 +1,509 @@
+:root {
+  color-scheme: dark;
+  --bg: #101113;
+  --panel: #191b1f;
+  --panel-2: #202328;
+  --line: #343941;
+  --text: #f0eee8;
+  --muted: #a8aaad;
+  --accent: #ffce4a;
+  --accent-2: #29d3b7;
+  --danger: #ff6f61;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    linear-gradient(120deg, rgba(255, 206, 74, 0.08), transparent 32%),
+    linear-gradient(240deg, rgba(41, 211, 183, 0.08), transparent 28%),
+    var(--bg);
+  color: var(--text);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.intro-screen {
+  display: block;
+  min-height: 100vh;
+  padding: 0;
+}
+
+.intro-video-shell {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  overflow: hidden;
+  border: 0;
+  background:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%),
+    #0a0b0d;
+  background-size: 26px 26px;
+}
+
+.intro-video-shell video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+.intro-hotspot-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  pointer-events: auto;
+}
+
+.intro-actions {
+  position: absolute;
+  left: 18px;
+  top: 18px;
+  z-index: 5;
+  display: flex;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.intro-screen:not(.has-video) .intro-hotspot-layer {
+  display: none;
+}
+
+.intro-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 10px;
+  color: var(--muted);
+  text-align: center;
+  pointer-events: none;
+}
+
+.intro-empty strong {
+  color: var(--text);
+  font-size: clamp(24px, 4vw, 54px);
+  line-height: 1;
+}
+
+.generation-panel {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 5;
+  width: min(420px, calc(100vw - 36px));
+  max-height: min(52vh, 520px);
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--line);
+  background: rgba(13, 15, 18, 0.82);
+  backdrop-filter: blur(12px);
+}
+
+.generation-status {
+  margin-bottom: 10px;
+  color: var(--accent);
+  font-size: 12px;
+}
+
+.generation-panel h2 {
+  margin-bottom: 10px;
+  font-size: 22px;
+}
+
+.generation-panel pre {
+  max-height: 260px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  line-height: 1.7;
+}
+
+.generation-panel a {
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--accent-2);
+}
+
+.intro-actions button,
+.intro-file-button {
+  display: inline-grid;
+  place-items: center;
+  min-height: 42px;
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  color: var(--text);
+  background: rgba(13, 15, 18, 0.78);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+}
+
+.intro-actions button:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #17130a;
+}
+
+.intro-actions button:disabled {
+  cursor: not-allowed;
+  color: var(--muted);
+  opacity: 0.62;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  align-items: start;
+  gap: 18px;
+  min-height: 100vh;
+  padding: 18px;
+}
+
+body:not(.editor-active) .app-shell {
+  display: none;
+}
+
+body.editor-active .intro-screen {
+  display: none;
+}
+
+.stage-panel,
+.side-panel {
+  border: 1px solid var(--line);
+  background: rgba(25, 27, 31, 0.94);
+}
+
+.stage-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: fit-content;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.kicker {
+  margin: 0 0 5px;
+  color: var(--accent);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+h1,
+h2 {
+  margin: 0;
+  letter-spacing: 0;
+}
+
+h1 {
+  font-size: clamp(22px, 3vw, 42px);
+  line-height: 1;
+}
+
+h2 {
+  font-size: 14px;
+}
+
+.mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+}
+
+.mode-button,
+.toolbar button,
+.file-button {
+  min-height: 38px;
+  border: 0;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.mode-button {
+  min-width: 78px;
+  padding: 0 14px;
+}
+
+.mode-button.is-active {
+  background: var(--accent);
+  color: #17130a;
+}
+
+.video-frame {
+  position: relative;
+  flex: none;
+  aspect-ratio: 16 / 9;
+  min-height: 0;
+  max-height: calc(100vh - 158px);
+  overflow: hidden;
+  background:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%),
+    #0a0b0d;
+  background-size: 26px 26px;
+}
+
+video,
+.hotspot-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+video {
+  object-fit: contain;
+  z-index: 1;
+}
+
+.hotspot-layer {
+  z-index: 3;
+  pointer-events: auto;
+}
+
+.hotspot {
+  pointer-events: all;
+}
+
+.empty-state {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 10px;
+  text-align: center;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.empty-state strong {
+  color: var(--text);
+  font-size: 20px;
+}
+
+.hotspot ellipse {
+  fill: rgba(255, 206, 74, 0.32);
+  stroke: var(--accent);
+  stroke-width: 4;
+  cursor: move;
+}
+
+.hotspot text {
+  fill: var(--text);
+  font-size: 18px;
+  font-weight: 700;
+  pointer-events: none;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.hotspot.is-active ellipse {
+  fill: rgba(41, 211, 183, 0.26);
+  stroke: var(--accent-2);
+}
+
+.hotspot.is-selected ellipse {
+  fill: rgba(255, 111, 97, 0.3);
+  stroke: var(--danger);
+}
+
+.resize-handle,
+.rotate-handle {
+  fill: var(--panel);
+  stroke: var(--text);
+  stroke-width: 2;
+  cursor: nwse-resize;
+}
+
+.rotate-handle {
+  fill: var(--accent-2);
+  cursor: grab;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 18px 18px;
+  border-top: 1px solid var(--line);
+}
+
+.toolbar button,
+.file-button {
+  display: inline-grid;
+  place-items: center;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+}
+
+.toolbar button:disabled {
+  cursor: not-allowed;
+  color: var(--muted);
+  opacity: 0.62;
+}
+
+.file-button input {
+  display: none;
+}
+
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: calc(100vh - 36px);
+  overflow: auto;
+}
+
+.panel-section {
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  color: var(--muted);
+}
+
+.selection-list {
+  display: grid;
+  gap: 8px;
+  min-height: 124px;
+  margin: 0;
+  padding-left: 24px;
+}
+
+.selection-list li,
+.hotspot-card {
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+}
+
+.selection-list li {
+  padding: 10px;
+}
+
+.hotspot-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  max-height: 222px;
+  overflow: auto;
+}
+
+.hotspot-card {
+  min-height: 42px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.hotspot-card.is-active {
+  border-color: var(--accent-2);
+}
+
+.hotspot-card.is-selected {
+  border-color: var(--danger);
+}
+
+.editor-form {
+  display: grid;
+  gap: 12px;
+}
+
+.editor-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.editor-form input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  color: var(--text);
+  background: #0d0f12;
+  padding: 0 10px;
+}
+
+.range-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.output-section {
+  flex: 1;
+  min-height: 0;
+  border-bottom: 0;
+}
+
+pre {
+  max-height: 240px;
+  overflow: auto;
+  margin: 12px 0 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  background: #0d0f12;
+  color: var(--accent-2);
+  white-space: pre-wrap;
+}
+
+@media (max-width: 980px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .side-panel {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-shell {
+    padding: 10px;
+  }
+
+  .topbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .video-frame {
+    max-height: none;
+  }
+
+  .hotspot-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
