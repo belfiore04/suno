@@ -131,7 +131,7 @@ body.is-generating .intro-actions {
   font-weight: 500;
   letter-spacing: 0;
   text-shadow: 0 10px 40px rgba(0, 0, 0, 0.55);
-  animation: generatingPulse 1.8s ease-in-out infinite;
+  animation: generatingPulse 3.8s ease-in-out infinite;
 }
 
 .generating-error {

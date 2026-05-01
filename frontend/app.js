@@ -404,7 +404,7 @@ async function startGenerationIfNeeded() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         items: outputPayload(),
-        style: "sacred gospel a cappella, classical choral, cathedral choir, vocal only, monumental",
+        style: "meditative a cappella, serene vocal ensemble, vocal only, slow breathing harmonies",
         skip_oss: true,
       }),
     });
