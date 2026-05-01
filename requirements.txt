@@ -1,6 +1,6 @@
 fastapi
 pydub
-pyaudioop
+audioop-lts; python_version >= "3.13"
 pyserial
 uvicorn
 playwright
