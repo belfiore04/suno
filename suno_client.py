@@ -133,14 +133,21 @@ def generate_cover(
     return {"clip_ids": clip_ids, "task_id": data.get("id"), "title": title}
 
 
-def wait_for_results(clip_ids: list, max_wait: int = 600) -> list:
-    """轮询直到所有 clip 的 audio_url 填充完毕，返回结果列表。"""
+def wait_for_results(
+    clip_ids: list,
+    max_wait: int = 600,
+    min_ready: int | None = None,
+    poll_interval: int = 5,
+) -> list:
+    """轮询直到指定数量的 clip 有 audio_url，返回已就绪结果列表。"""
+    if min_ready is None:
+        min_ready = len(clip_ids)
     ids_str = ",".join(clip_ids)
-    print(f"[Fetch] 等待生成结果，轮询 clip_ids: {ids_str}")
+    print(f"[Fetch] 等待生成结果，轮询 clip_ids: {ids_str}，需要就绪 {min_ready}/{len(clip_ids)}")
     elapsed = 0
     while elapsed < max_wait:
-        time.sleep(10)
-        elapsed += 10
+        time.sleep(poll_interval)
+        elapsed += poll_interval
         resp = requests.get(
             f"{_base_url()}/suno/feed/{ids_str}",
             headers=_headers(),
@@ -152,10 +159,10 @@ def wait_for_results(clip_ids: list, max_wait: int = 600) -> list:
         ready = [c for c in clips if c.get("audio_url")]
         if elapsed % 30 == 0 or ready:
             print(f"[Fetch] {elapsed}s，已就绪 {len(ready)}/{len(clip_ids)}")
-        if len(ready) >= len(clip_ids):
-            print("[Fetch] 全部生成完成！")
+        if len(ready) >= min_ready:
+            print(f"[Fetch] 已获得 {len(ready)} 个结果")
             return ready
-    raise TimeoutError(f"Suno 生成超时（>{max_wait}s）")
+    raise TimeoutError(f"Suno 生成超时（>{max_wait}s），已就绪数量不足 {min_ready}")
 
 
 def download_song(audio_url: str, output_path: str) -> str:

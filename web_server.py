@@ -175,7 +175,7 @@ def generate_song(payload: GenerateRequest, request: Request) -> dict:
         style=style,
         title=title,
     )
-    results = wait_for_results(task["clip_ids"])
+    results = wait_for_results(task["clip_ids"], min_ready=1)
     first = results[0]
     song_filename = f"{first.get('title', title)}_{first['id']}.mp3"
     local_song_path = OUTPUT_DIR / song_filename
