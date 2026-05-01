@@ -54,6 +54,7 @@ const els = {
   qrTitle: document.querySelector("#qrTitle"),
   qrImage: document.querySelector("#qrImage"),
   qrDownloadLink: document.querySelector("#qrDownloadLink"),
+  referenceAudioLink: document.querySelector("#referenceAudioLink"),
   generatedAudio: document.querySelector("#generatedAudio"),
   video: document.querySelector("#video"),
   videoInput: document.querySelector("#videoInput"),
@@ -449,6 +450,8 @@ function showQrModal(data) {
   els.qrTitle.textContent = data.title || "扫描下载音频";
   els.qrImage.src = data.qr_data_url;
   els.qrDownloadLink.href = data.qr_url || data.song_url;
+  els.referenceAudioLink.href = data.mixed_url || "#";
+  els.referenceAudioLink.hidden = !data.mixed_url;
   els.qrModal.hidden = false;
 }
 

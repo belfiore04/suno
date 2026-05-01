@@ -5,6 +5,7 @@ from io import BytesIO
 import os
 from pathlib import Path
 from typing import Optional
+from uuid import uuid4
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
@@ -178,7 +179,7 @@ def generate_song(payload: GenerateRequest, request: Request) -> dict:
     audio_paths = [_safe_audio_path(item.file) for item in payload.items]
     title, lyrics, prompt, style = build_song_metadata(payload.items, payload.style)
 
-    mixed_path = OUTPUT_DIR / "mixed.mp3"
+    mixed_path = OUTPUT_DIR / f"reference_{title}_{uuid4().hex[:8]}.mp3"
     mix_audios([str(path) for path in audio_paths], str(mixed_path))
 
     cover_clip_id = upload_audio(str(mixed_path))
@@ -202,6 +203,7 @@ def generate_song(payload: GenerateRequest, request: Request) -> dict:
         generate_qr(download_url, qr_path)
 
     song_url = f"/output/{song_filename}"
+    mixed_url = f"/output/{mixed_path.name}"
     qr_target_url = download_url or _absolute_url(request, song_url)
     qr_data_url = _qr_data_url(qr_target_url)
 
@@ -210,6 +212,7 @@ def generate_song(payload: GenerateRequest, request: Request) -> dict:
         "lyrics": lyrics,
         "style": style,
         "mixed_path": str(mixed_path),
+        "mixed_url": mixed_url,
         "song_path": str(local_song_path),
         "song_url": song_url,
         "qr_url": qr_target_url,

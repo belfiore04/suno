@@ -197,6 +197,11 @@ body.is-generating .intro-actions {
   color: var(--accent-2);
 }
 
+.qr-dialog .reference-audio-link {
+  color: rgba(242, 239, 229, 0.72);
+  font-size: 13px;
+}
+
 .qr-close {
   position: absolute;
   right: 10px;
