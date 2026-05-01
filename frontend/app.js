@@ -46,6 +46,7 @@ const els = {
   introVideoInput: document.querySelector("#introVideoInput"),
   introLayer: document.querySelector("#introHotspotLayer"),
   introEmpty: document.querySelector("#introEmpty"),
+  fullscreenButton: document.querySelector("#fullscreenButton"),
   enterEditorButton: document.querySelector("#enterEditorButton"),
   generationPanel: document.querySelector("#generationPanel"),
   generationStatus: document.querySelector("#generationStatus"),
@@ -479,6 +480,19 @@ function closeQrModal() {
   render();
 }
 
+function requestExperienceFullscreen() {
+  const target = document.querySelector("#introVideoShell");
+  if (!target || document.fullscreenElement || document.webkitFullscreenElement) {
+    return;
+  }
+
+  if (target.requestFullscreen) {
+    target.requestFullscreen().catch(() => {});
+  } else if (target.webkitRequestFullscreen) {
+    target.webkitRequestFullscreen();
+  }
+}
+
 function syncVideoFrame() {
   if (!state.videoUrl) return;
 
@@ -586,6 +600,8 @@ els.enterEditorButton.addEventListener("click", () => {
   syncVideoFrame();
   render();
 });
+
+els.fullscreenButton.addEventListener("click", requestExperienceFullscreen);
 
 els.playButton.addEventListener("click", async () => {
   if (!els.video.src || state.selectedIds.length < 4) return;
