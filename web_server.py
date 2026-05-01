@@ -37,7 +37,7 @@ class SelectedItem(BaseModel):
 
 class GenerateRequest(BaseModel):
     items: list[SelectedItem] = Field(min_length=4, max_length=4)
-    style: str = "a cappella, vocal only, four-part harmony"
+    style: str = "gospel a cappella, vocal only, four-part choir"
     skip_oss: bool = True
 
 
@@ -97,56 +97,60 @@ def build_song_metadata(items: list[SelectedItem], style: str) -> tuple[str, str
     title = f"{names[0]}·{names[1]}·{names[2]}·{names[3]}"
     theme = "、".join(names)
     lyrics = "\n".join([
-        "[Verse 1]",
+        "[四声部同时进入]",
+        f"{names[0]}，{names[1]}，{names[2]}，{names[3]}",
+        "同一口气，升起回响",
+        "",
+        "[四声部合唱]",
         f"{names[0]}缓缓落在呼吸之间",
         f"{names[1]}从远处回到心田",
         f"{names[2]}安住在无声的边缘",
         f"{names[3]}向深处铺开一线",
         "",
-        "[Verse 2]",
+        "[男低 女低 男高 女高]",
         "男低声像地面轻轻托住夜晚",
         "女低声在胸口慢慢回环",
         "男高声穿过云层不急不缓",
         "女高声把光放回眉间",
         "",
-        "[Chorus]",
+        "[合唱]",
         f"{names[0]}，{names[1]}，{names[2]}，{names[3]}",
-        "在同一口气里展开",
+        "在同一口气里展开，层层推开",
         "没有鼓点，没有弦外",
-        "只有人声像水一样慢慢来",
+        "只有人声像光一样涌来",
         "",
         "[Bridge]",
         f"让{theme}成为一圈安静的波纹",
         "四个声部相遇，又各自归根",
         "",
-        "[Final Chorus]",
+        "[终段合唱]",
         f"{names[0]}，{names[1]}，{names[2]}，{names[3]}",
         "在闭眼时仍然存在",
-        "悠长，清澈，缓慢，空白",
-        "像一场只由呼吸组成的海",
+        "悠长，清澈，震荡，空白",
+        "像一场只由人声托起的海",
     ])
-    prompt = "\n".join([
-        "Create an a cappella song with vocals only and absolutely no instruments.",
-        "Use four vocal parts: tenor, bass, soprano, and alto.",
-        "The mood must be meditative, spacious, serene, and melodious.",
-        "Use slow, flowing, sustained harmonies with a contemplative feeling.",
-        f"The Chinese lyrics must include these four words exactly: {theme}.",
-        "",
-        lyrics,
-    ])
+    prompt = lyrics
     tags = ", ".join([
         style,
+        "powerful gospel choir",
         "a cappella",
         "vocal only",
         "no instruments",
         "four-part harmony",
+        "all four voices enter together from the beginning",
+        "no solo lead vocal intro",
+        "choir ensemble from first phrase",
         "tenor",
         "bass",
         "soprano",
         "alto",
+        "grand",
+        "powerful",
         "meditative",
         "serene",
         "melodious",
+        "less pop",
+        "not mainstream pop",
         "Chinese lyrics",
     ])
     return title, lyrics, prompt, tags

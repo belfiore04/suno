@@ -410,7 +410,7 @@ async function startGenerationIfNeeded() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         items: outputPayload(),
-        style: "a cappella, vocal only, four-part harmony, meditative",
+        style: "gospel a cappella, vocal only, four-part choir, meditative, grand",
         skip_oss: true,
       }),
     });
