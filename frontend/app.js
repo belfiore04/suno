@@ -54,6 +54,8 @@ const els = {
   enterEditorButton: document.querySelector("#enterEditorButton"),
   introPreviewMixButton: document.querySelector("#introPreviewMixButton"),
   introConfirmGenerateButton: document.querySelector("#introConfirmGenerateButton"),
+  auditionPanel: document.querySelector("#auditionPanel"),
+  auditionStatus: document.querySelector("#auditionStatus"),
   generationPanel: document.querySelector("#generationPanel"),
   generatingError: document.querySelector("#generatingError"),
   qrModal: document.querySelector("#qrModal"),
@@ -213,6 +215,10 @@ function updateActionButtons() {
   els.selectModeButton.disabled = locked;
   els.createButton.disabled = locked;
   els.playButton.disabled = !els.video.src || locked;
+
+  if (els.auditionPanel) {
+    els.auditionPanel.hidden = !state.auditioning;
+  }
 }
 
 function audioUrlForFile(file) {
@@ -220,14 +226,27 @@ function audioUrlForFile(file) {
   return `/${file.replace(/^\/+/, "")}`;
 }
 
-function playLockedAudio(url) {
+function beginAudioLock(label) {
+  state.auditioning = true;
+  document.body.classList.add("is-auditioning");
+  if (els.auditionStatus) {
+    els.auditionStatus.textContent = label;
+  }
+  updateActionButtons();
+}
+
+function endAudioLock() {
+  state.auditioning = false;
+  document.body.classList.remove("is-auditioning");
+  updateActionButtons();
+}
+
+function playLockedAudio(url, label = "试听中") {
   state.auditionAudio.pause();
   state.auditionAudio.removeAttribute("src");
   state.auditionAudio.load();
 
-  state.auditioning = true;
-  document.body.classList.add("is-auditioning");
-  updateActionButtons();
+  beginAudioLock(label);
   state.auditionAudio.src = url;
   state.auditionAudio.currentTime = 0;
 
@@ -235,9 +254,7 @@ function playLockedAudio(url) {
     const cleanup = () => {
       state.auditionAudio.removeEventListener("ended", handleEnded);
       state.auditionAudio.removeEventListener("error", handleError);
-      state.auditioning = false;
-      document.body.classList.remove("is-auditioning");
-      updateActionButtons();
+      endAudioLock();
     };
     const handleEnded = () => {
       cleanup();
@@ -291,6 +308,7 @@ async function selectHotspot(id, forceSelect = false) {
     }
 
     const hotspot = state.hotspots.find((item) => item.id === id);
+    beginAudioLock(`试听 ${hotspot.id} · ${hotspot.name}`);
     state.selectedIds.push(id);
     state.mixPreviewKey = "";
     state.mixPreviewUrl = "";
@@ -298,12 +316,13 @@ async function selectHotspot(id, forceSelect = false) {
     render();
 
     try {
-      await playLockedAudio(audioUrlForFile(hotspot.file));
+      await playLockedAudio(audioUrlForFile(hotspot.file), `试听 ${hotspot.id} · ${hotspot.name}`);
     } catch (error) {
       state.selectedIds = state.selectedIds.filter((selectedId) => selectedId !== id);
       state.mixPreviewKey = "";
       state.mixPreviewUrl = "";
       els.generatingError.textContent = String(error.message || error);
+      endAudioLock();
       syncVideoPlayback();
       render();
     }

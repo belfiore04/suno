@@ -103,6 +103,11 @@ body.is-auditioning .hotspot:not(.is-selected) {
   opacity: 0.5;
 }
 
+body.is-auditioning .file-button {
+  pointer-events: none;
+  opacity: 0.62;
+}
+
 .intro-empty {
   position: absolute;
   inset: 0;
@@ -131,6 +136,28 @@ body.is-auditioning .hotspot:not(.is-selected) {
 
 .generation-panel[hidden] {
   display: none;
+}
+
+.audition-panel {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.18);
+  pointer-events: auto;
+}
+
+.audition-panel[hidden] {
+  display: none;
+}
+
+.audition-panel div {
+  font-size: clamp(24px, 4vw, 54px);
+  font-weight: 500;
+  text-shadow: 0 10px 40px rgba(0, 0, 0, 0.55);
+  animation: generatingPulse 3.8s ease-in-out infinite;
 }
 
 .generating-word {

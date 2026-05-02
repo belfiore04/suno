@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Suno Hotspot Composer</title>
-    <link rel="stylesheet" href="/frontend/styles.css" />
+    <link rel="stylesheet" href="/frontend/styles.css?v=20260502-audition2" />
   </head>
   <body>
     <section class="intro-screen" id="introScreen">
@@ -23,6 +23,9 @@
         <div class="intro-empty" id="introEmpty">
           <strong>载入视频封面</strong>
           <span>选择视频后会停在第一帧，可直接点击热点选择音频。</span>
+        </div>
+        <div class="audition-panel" id="auditionPanel" hidden>
+          <div id="auditionStatus">试听中</div>
         </div>
         <div class="generation-panel" id="generationPanel" hidden>
           <div class="generating-word">Generating</div>
@@ -142,6 +145,6 @@
       </aside>
     </main>
 
-    <script src="/frontend/app.js"></script>
+    <script src="/frontend/app.js?v=20260502-audition2"></script>
   </body>
 </html>
