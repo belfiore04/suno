@@ -95,6 +95,14 @@ body.is-generating .intro-actions {
   pointer-events: none;
 }
 
+body.is-auditioning .hotspot-layer {
+  pointer-events: none;
+}
+
+body.is-auditioning .hotspot:not(.is-selected) {
+  opacity: 0.5;
+}
+
 .intro-empty {
   position: absolute;
   inset: 0;
@@ -499,6 +507,11 @@ video {
 .toolbar button:disabled {
   cursor: not-allowed;
   color: var(--muted);
+  opacity: 0.62;
+}
+
+.mode-button:disabled {
+  cursor: not-allowed;
   opacity: 0.62;
 }
 

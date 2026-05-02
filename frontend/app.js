@@ -38,6 +38,11 @@ const state = {
   videoUrl: "",
   generationKey: "",
   generating: false,
+  auditioning: false,
+  auditionAudio: new Audio(),
+  mixPreviewKey: "",
+  mixPreviewUrl: "",
+  mixingPreview: false,
 };
 
 const els = {
@@ -47,6 +52,8 @@ const els = {
   introLayer: document.querySelector("#introHotspotLayer"),
   introEmpty: document.querySelector("#introEmpty"),
   enterEditorButton: document.querySelector("#enterEditorButton"),
+  introPreviewMixButton: document.querySelector("#introPreviewMixButton"),
+  introConfirmGenerateButton: document.querySelector("#introConfirmGenerateButton"),
   generationPanel: document.querySelector("#generationPanel"),
   generatingError: document.querySelector("#generatingError"),
   qrModal: document.querySelector("#qrModal"),
@@ -59,6 +66,8 @@ const els = {
   video: document.querySelector("#video"),
   videoInput: document.querySelector("#videoInput"),
   playButton: document.querySelector("#playButton"),
+  previewMixButton: document.querySelector("#previewMixButton"),
+  confirmGenerateButton: document.querySelector("#confirmGenerateButton"),
   emptyState: document.querySelector("#emptyState"),
   layer: document.querySelector("#hotspotLayer"),
   editModeButton: document.querySelector("#editModeButton"),
@@ -113,6 +122,8 @@ function createDefaultHotspots() {
   state.hotspots = HOTSPOT_IDS.map(defaultHotspot);
   state.activeId = state.hotspots[0].id;
   state.selectedIds = [];
+  state.mixPreviewKey = "";
+  state.mixPreviewUrl = "";
   saveHotspots();
   render();
 }
@@ -121,6 +132,8 @@ function resetDefaultHotspots() {
   state.hotspots = HOTSPOT_IDS.map(defaultHotspot);
   state.activeId = state.hotspots[0].id;
   state.selectedIds = [];
+  state.mixPreviewKey = "";
+  state.mixPreviewUrl = "";
   saveHotspots();
 }
 
@@ -177,6 +190,73 @@ function getActiveHotspot() {
   return state.hotspots.find((item) => item.id === state.activeId) ?? state.hotspots[0];
 }
 
+function updateActionButtons() {
+  const ready = state.selectedIds.length === 4;
+  const locked = state.auditioning || state.mixingPreview || state.generating;
+  const canPreview = ready && !locked;
+  const canGenerate = ready && !locked;
+
+  for (const button of [els.previewMixButton, els.introPreviewMixButton]) {
+    if (!button) continue;
+    button.disabled = !canPreview;
+    button.textContent = state.auditioning ? "试听中" : state.mixingPreview ? "合成中" : "试听合成";
+  }
+
+  for (const button of [els.confirmGenerateButton, els.introConfirmGenerateButton]) {
+    if (!button) continue;
+    button.disabled = !canGenerate;
+  }
+
+  els.clearSelectionButton.disabled = locked;
+  els.enterEditorButton.disabled = locked;
+  els.editModeButton.disabled = locked;
+  els.selectModeButton.disabled = locked;
+  els.createButton.disabled = locked;
+  els.playButton.disabled = !els.video.src || locked;
+}
+
+function audioUrlForFile(file) {
+  if (/^https?:\/\//.test(file)) return file;
+  return `/${file.replace(/^\/+/, "")}`;
+}
+
+function playLockedAudio(url) {
+  state.auditionAudio.pause();
+  state.auditionAudio.removeAttribute("src");
+  state.auditionAudio.load();
+
+  state.auditioning = true;
+  document.body.classList.add("is-auditioning");
+  updateActionButtons();
+  state.auditionAudio.src = url;
+  state.auditionAudio.currentTime = 0;
+
+  return new Promise((resolve, reject) => {
+    const cleanup = () => {
+      state.auditionAudio.removeEventListener("ended", handleEnded);
+      state.auditionAudio.removeEventListener("error", handleError);
+      state.auditioning = false;
+      document.body.classList.remove("is-auditioning");
+      updateActionButtons();
+    };
+    const handleEnded = () => {
+      cleanup();
+      resolve();
+    };
+    const handleError = () => {
+      cleanup();
+      reject(new Error("音频播放失败"));
+    };
+
+    state.auditionAudio.addEventListener("ended", handleEnded, { once: true });
+    state.auditionAudio.addEventListener("error", handleError, { once: true });
+    state.auditionAudio.play().catch((error) => {
+      cleanup();
+      reject(error);
+    });
+  });
+}
+
 function setMode(mode) {
   state.mode = mode;
   els.editModeButton.classList.toggle("is-active", mode === "edit");
@@ -191,17 +271,43 @@ function svgPoint(event) {
   return point.matrixTransform(els.layer.getScreenCTM().inverse());
 }
 
-function selectHotspot(id, forceSelect = false) {
+async function selectHotspot(id, forceSelect = false) {
+  if (state.auditioning || state.mixingPreview || state.generating) {
+    return;
+  }
+
   state.activeId = id;
 
   if (forceSelect || state.mode === "select") {
     const index = state.selectedIds.indexOf(id);
     if (index >= 0) {
-      state.selectedIds.splice(index, 1);
-    } else if (state.selectedIds.length < 4) {
-      state.selectedIds.push(id);
+      render();
+      return;
     }
+
+    if (state.selectedIds.length >= 4) {
+      render();
+      return;
+    }
+
+    const hotspot = state.hotspots.find((item) => item.id === id);
+    state.selectedIds.push(id);
+    state.mixPreviewKey = "";
+    state.mixPreviewUrl = "";
     syncVideoPlayback();
+    render();
+
+    try {
+      await playLockedAudio(audioUrlForFile(hotspot.file));
+    } catch (error) {
+      state.selectedIds = state.selectedIds.filter((selectedId) => selectedId !== id);
+      state.mixPreviewKey = "";
+      state.mixPreviewUrl = "";
+      els.generatingError.textContent = String(error.message || error);
+      syncVideoPlayback();
+      render();
+    }
+    return;
   }
 
   render();
@@ -291,7 +397,7 @@ function renderLayer(layer = els.layer, options = {}) {
     }
     group.addEventListener("click", (event) => {
       event.stopPropagation();
-      selectHotspot(hotspot.id, selectable);
+      void selectHotspot(hotspot.id, selectable);
     });
 
     const ellipse = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
@@ -343,7 +449,9 @@ function renderList() {
     button.classList.toggle("is-selected", state.selectedIds.includes(hotspot.id));
     button.textContent = hotspot.id;
     button.title = `${hotspot.name} - ${hotspot.file}`;
-    button.addEventListener("click", () => selectHotspot(hotspot.id));
+    button.addEventListener("click", () => {
+      void selectHotspot(hotspot.id);
+    });
     els.hotspotList.append(button);
   }
 }
@@ -366,37 +474,68 @@ function syncVideoPlayback() {
   if (!els.video.src) {
     els.playButton.disabled = true;
     els.playButton.textContent = "选择视频后可用";
+    updateActionButtons();
     return;
   }
 
-  if (state.selectedIds.length === 4) {
-    els.playButton.disabled = false;
-    els.playButton.textContent = "播放/暂停";
-    document.body.classList.add("is-generating");
-    requestExperienceFullscreen();
-    const video = document.body.classList.contains("editor-active") ? els.video : els.introVideo;
-    video.play().catch(() => {
-      if (document.body.classList.contains("editor-active")) {
-        els.playButton.textContent = "点击播放";
+  if (state.selectedIds.length < 4) {
+    state.generationKey = "";
+  }
+
+  els.playButton.disabled = false;
+  els.playButton.textContent = "播放/暂停视频";
+  updateActionButtons();
+}
+
+async function previewMixedAudio() {
+  if (state.selectedIds.length !== 4 || state.auditioning || state.mixingPreview || state.generating) {
+    return;
+  }
+
+  const key = selectionKey();
+  state.mixingPreview = true;
+  updateActionButtons();
+  els.generatingError.textContent = "";
+
+  try {
+    if (!state.mixPreviewUrl || state.mixPreviewKey !== key) {
+      const response = await fetch("/api/mix-preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: outputPayload() }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || data.error || "合成试听失败");
       }
-    });
-    startGenerationIfNeeded();
+      state.mixPreviewKey = key;
+      state.mixPreviewUrl = data.mixed_url;
+    }
+  } catch (error) {
+    els.generatingError.textContent = String(error.message || error);
+    return;
+  } finally {
+    state.mixingPreview = false;
+    updateActionButtons();
+  }
+
+  try {
+    await playLockedAudio(state.mixPreviewUrl);
+  } catch (error) {
+    els.generatingError.textContent = String(error.message || error);
+  }
+}
+
+function confirmGeneration() {
+  if (state.selectedIds.length !== 4 || state.auditioning || state.mixingPreview || state.generating) {
     return;
   }
 
-  state.generationKey = "";
-  state.generating = false;
-  document.body.classList.remove("is-generating");
-  els.video.pause();
-  els.introVideo.pause();
-  els.playButton.disabled = true;
-  els.playButton.textContent = "选满 4 个后播放";
-  if (Number.isFinite(els.video.duration)) {
-    els.video.currentTime = 0;
-  }
-  if (Number.isFinite(els.introVideo.duration)) {
-    els.introVideo.currentTime = 0;
-  }
+  document.body.classList.add("is-generating");
+  requestExperienceFullscreen();
+  const video = document.body.classList.contains("editor-active") ? els.video : els.introVideo;
+  video.play().catch(() => {});
+  startGenerationIfNeeded();
 }
 
 async function startGenerationIfNeeded() {
@@ -469,6 +608,9 @@ function showQrModal(data) {
 
 function closeQrModal() {
   els.qrModal.hidden = true;
+  state.auditionAudio.pause();
+  state.auditionAudio.removeAttribute("src");
+  state.auditionAudio.load();
   els.generatedAudio.pause();
   els.generatedAudio.removeAttribute("src");
   els.generatedAudio.load();
@@ -476,7 +618,12 @@ function closeQrModal() {
   els.generatingError.textContent = "";
   state.selectedIds = [];
   state.generationKey = "";
+  state.mixPreviewKey = "";
+  state.mixPreviewUrl = "";
+  state.auditioning = false;
+  state.mixingPreview = false;
   state.generating = false;
+  document.body.classList.remove("is-auditioning");
   document.body.classList.remove("is-generating");
   stopVideoAtFirstFrame();
   render();
@@ -568,6 +715,7 @@ function render() {
   renderList();
   renderSelection();
   renderEditor();
+  updateActionButtons();
 }
 
 function updateActiveHotspot(patch) {
@@ -587,16 +735,19 @@ function exportConfig() {
 }
 
 els.videoInput.addEventListener("change", () => {
+  if (state.auditioning || state.generating) return;
   const file = els.videoInput.files[0];
   setVideoSource(file);
 });
 
 els.introVideoInput.addEventListener("change", () => {
+  if (state.auditioning || state.generating) return;
   const file = els.introVideoInput.files[0];
   setVideoSource(file);
 });
 
 els.enterEditorButton.addEventListener("click", () => {
+  if (state.auditioning || state.generating) return;
   document.body.classList.add("editor-active");
   setMode("edit");
   syncVideoFrame();
@@ -604,7 +755,7 @@ els.enterEditorButton.addEventListener("click", () => {
 });
 
 els.playButton.addEventListener("click", async () => {
-  if (!els.video.src || state.selectedIds.length < 4) return;
+  if (!els.video.src || state.auditioning || state.generating) return;
 
   if (els.video.paused) {
     await els.video.play();
@@ -612,6 +763,16 @@ els.playButton.addEventListener("click", async () => {
     els.video.pause();
   }
 });
+
+for (const button of [els.previewMixButton, els.introPreviewMixButton]) {
+  button.addEventListener("click", () => {
+    void previewMixedAudio();
+  });
+}
+
+for (const button of [els.confirmGenerateButton, els.introConfirmGenerateButton]) {
+  button.addEventListener("click", confirmGeneration);
+}
 
 els.qrCloseButton.addEventListener("click", closeQrModal);
 
@@ -632,6 +793,7 @@ els.introVideo.addEventListener("loadedmetadata", () => {
 });
 
 els.importInput.addEventListener("change", async () => {
+  if (state.auditioning || state.generating) return;
   const file = els.importInput.files[0];
   if (!file) return;
 
@@ -639,15 +801,29 @@ els.importInput.addEventListener("change", async () => {
   state.hotspots = JSON.parse(text);
   state.activeId = state.hotspots[0]?.id ?? 11;
   state.selectedIds = [];
+  state.mixPreviewKey = "";
+  state.mixPreviewUrl = "";
   saveHotspots();
   render();
 });
 
-els.editModeButton.addEventListener("click", () => setMode("edit"));
-els.selectModeButton.addEventListener("click", () => setMode("select"));
-els.createButton.addEventListener("click", createDefaultHotspots);
+els.editModeButton.addEventListener("click", () => {
+  if (state.auditioning || state.generating) return;
+  setMode("edit");
+});
+els.selectModeButton.addEventListener("click", () => {
+  if (state.auditioning || state.generating) return;
+  setMode("select");
+});
+els.createButton.addEventListener("click", () => {
+  if (state.auditioning || state.generating) return;
+  createDefaultHotspots();
+});
 els.clearSelectionButton.addEventListener("click", () => {
+  if (state.auditioning || state.generating) return;
   state.selectedIds = [];
+  state.mixPreviewKey = "";
+  state.mixPreviewUrl = "";
   syncVideoPlayback();
   render();
 });

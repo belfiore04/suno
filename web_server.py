@@ -28,6 +28,7 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 app = FastAPI(title="Suno Hotspot Composer")
 app.mount("/frontend", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
 app.mount("/output", StaticFiles(directory=str(OUTPUT_DIR), html=False), name="output")
+app.mount("/music", StaticFiles(directory=str(ROOT / "music"), html=False), name="music")
 
 
 class SelectedItem(BaseModel):
@@ -40,6 +41,10 @@ class GenerateRequest(BaseModel):
     items: list[SelectedItem] = Field(min_length=4, max_length=4)
     style: str = "meditative a cappella, serene vocal ensemble, vocal only"
     skip_oss: bool = False
+
+
+class MixPreviewRequest(BaseModel):
+    items: list[SelectedItem] = Field(min_length=4, max_length=4)
 
 
 AUDIO_WORDS = {
@@ -96,46 +101,26 @@ def _qr_data_url(url: str) -> str:
 def build_song_metadata(items: list[SelectedItem], style: str) -> tuple[str, str, str, str]:
     names = [AUDIO_WORDS.get(item.id, item.name.strip()) for item in items]
     title = f"{names[0]}·{names[1]}·{names[2]}·{names[3]}"
-    theme = "、".join(names)
     lyrics = "\n".join([
-        "[静息齐入]",
-        f"{names[0]}，{names[1]}，{names[2]}，{names[3]}",
-        "同一口气，缓慢展开",
-        "",
-        "[四声部合唱]",
-        f"{names[0]}缓缓落在静默之间",
-        f"{names[1]}从远处进入呼吸",
-        f"{names[2]}安住于无声之中",
-        f"{names[3]}向深处展开回音",
-        "",
-        "[冥想织体]",
-        "男低声像长夜下的地平线",
-        "女低声像缓慢回环的烛火",
-        "男高声越过雾气与云层",
-        "女高声把微光放回眉间",
-        "",
-        "[同声回环]",
-        f"{names[0]}，{names[1]}，{names[2]}，{names[3]}",
-        "层层升起，层层归来",
-        "没有鼓点，没有弦外",
-        "只有人声在空中回响",
-        "",
-        "[静默间奏]",
-        f"让{theme}成为一圈缓慢的光",
-        "四个声部相遇，在静默里延长",
-        "",
-        "[终段回声]",
-        f"{names[0]}，{names[1]}，{names[2]}，{names[3]}",
-        "在闭眼时仍然轻轻存在",
-        "悠长，安静，回旋，空白",
-        "像一阵只由人声托起的呼吸",
+        "啊 啊 啊 啊",
+        "呜 呜 呜 呜",
+        "啦 啦 啦 啦",
+        "嗯 嗯 嗯 嗯",
     ])
-    prompt = ""
+    prompt = lyrics
     tags = ", ".join([
         style,
         "a cappella",
         "vocal only",
         "no instruments",
+        "no lyrics",
+        "no words",
+        "no meaningful words",
+        "no English lyrics",
+        "no Chinese lyrics",
+        "non-lexical vocals only",
+        "vocables only",
+        "sing only ah ooh la hum",
         "four-part harmony",
         "all four voices enter together from the beginning",
         "no solo lead vocal intro",
@@ -161,9 +146,17 @@ def build_song_metadata(items: list[SelectedItem], style: str) -> tuple[str, str
         "no pop beat",
         "no pop lead vocal",
         "no verse chorus pop structure",
-        "Chinese lyrics",
     ])
     return title, lyrics, prompt, tags
+
+
+def _mix_selected_items(items: list[SelectedItem]) -> tuple[str, Path]:
+    names = [AUDIO_WORDS.get(item.id, item.name.strip()) for item in items]
+    title = f"{names[0]}·{names[1]}·{names[2]}·{names[3]}"
+    audio_paths = [_safe_audio_path(item.file) for item in items]
+    mixed_path = OUTPUT_DIR / f"reference_{title}_{uuid4().hex[:8]}.mp3"
+    mix_audios([str(path) for path in audio_paths], str(mixed_path))
+    return title, mixed_path
 
 
 @app.get("/")
@@ -171,16 +164,24 @@ def index() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "index.html")
 
 
+@app.post("/api/mix-preview")
+def mix_preview(payload: MixPreviewRequest) -> dict:
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    title, mixed_path = _mix_selected_items(payload.items)
+    return {
+        "title": title,
+        "mixed_path": str(mixed_path),
+        "mixed_url": f"/output/{mixed_path.name}",
+    }
+
+
 @app.post("/api/generate")
 def generate_song(payload: GenerateRequest, request: Request) -> dict:
     load_dotenv()
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    audio_paths = [_safe_audio_path(item.file) for item in payload.items]
     title, lyrics, prompt, style = build_song_metadata(payload.items, payload.style)
-
-    mixed_path = OUTPUT_DIR / f"reference_{title}_{uuid4().hex[:8]}.mp3"
-    mix_audios([str(path) for path in audio_paths], str(mixed_path))
+    _, mixed_path = _mix_selected_items(payload.items)
 
     cover_clip_id = upload_audio(str(mixed_path))
     task = generate_cover(
